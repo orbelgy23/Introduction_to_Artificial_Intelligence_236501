@@ -1,8 +1,7 @@
 from math import log
 import pandas as pd
-import random
-from copy import deepcopy
-
+from sklearn.model_selection import KFold
+import matplotlib.pyplot as plt
 
 class Tree:
 
@@ -14,7 +13,7 @@ class Tree:
         self.rightNode = None
 
 
-def ID3(data_frame, classification):
+def ID3(data_frame, classification, m_param):
     tree = Tree()
     if len(data_frame["diagnosis"]) <= 0:
         tree.classification = classification
@@ -22,11 +21,13 @@ def ID3(data_frame, classification):
 
     classification = MajorityClass(data_frame)
 
-    if isLeaf(data_frame) is True:
+    if len(data_frame) <= m_param:
         tree.classification = classification
         return tree
 
-
+    if isLeaf(data_frame) is True:
+        tree.classification = classification
+        return tree
 
     feature_set = [element for element in data_frame]
     #feature_set_tmp = {'perimeter_mean', 'perimeter_worst', 'texture_mean', 'concavity_mean', 'symmetry_mean', 'area_se', 'compactness_mean', 'area_worst', 'smoothness_worst', 'smoothness_mean', 'texture_se', 'concavity_worst', 'symmetry_worst', 'fractal_dimension_se', 'texture_worst', 'concave points_se', 'smoothness_se', 'concavity_se', 'fractal_dimension_worst', 'perimeter_se', 'radius_worst', 'concave points_worst', 'compactness_worst', 'diagnosis', 'compactness_se', 'fractal_dimension_mean', 'concave points_mean', 'symmetry_se', 'area_mean', 'radius_mean', 'radius_se'}
@@ -55,9 +56,9 @@ def ID3(data_frame, classification):
     tree.feature = best_feature
     tree.threshold = best_threshold
 
-    tree.leftNode = ID3(smaller_equal_df, classification)
+    tree.leftNode = ID3(smaller_equal_df, classification, m_param)
 
-    tree.rightNode = ID3(bigger_df, classification)
+    tree.rightNode = ID3(bigger_df, classification, m_param)
 
     # print(smaller_equal_df)
     # print(bigger_df)
@@ -182,10 +183,11 @@ def Classifier(data_frame, tree):
 
     current_feature = tree.feature
     current_threshold = tree.threshold
-    if data_frame[current_feature] < current_threshold:
+    if data_frame[current_feature].iloc[0] < current_threshold:
         return Classifier(data_frame, tree.leftNode)
     else:
         return Classifier(data_frame, tree.rightNode)
+
 
 def all_values_equal(data_frame,feature):
     first = data_frame[feature].iloc[0]
@@ -193,6 +195,95 @@ def all_values_equal(data_frame,feature):
         if(line != first):
             return False
     return True
+
+
+def experiment(m_param):  # experiment() , input: M parameter, output: accuracy, make sure train.csv in project dir
+
+    # read csv file
+    file = pd.read_csv('train.csv')
+
+    # create DataFrame with pandas
+    data_frame = pd.DataFrame(file)
+
+    accuracy_list = []
+    sum = 0
+    kf = KFold(n_splits=5, random_state=123456789, shuffle=True)
+    splitted = kf.split(data_frame)
+
+    for test in splitted:
+        train_list = test[0]  # union of k-1 groups (train group)
+        test_list = test[1]  # (test group)
+        train_current_data_frame = data_frame.reindex(train_list)
+        # print(train_current_data_frame)
+        test_current_data_frame = data_frame.reindex(test_list)
+        # print(test_current_data_frame)
+        # print("\n\n")
+
+        tree = ID3(train_current_data_frame, True, m_param)  # learn on that data_frame
+        accuracy = calculate_accuracy(test_current_data_frame, tree)  # test on data_frame
+        accuracy_list.append(accuracy)
+        print('accuracy: ', accuracy)
+    for e in accuracy_list:
+        sum += e
+    average = sum / len(accuracy_list)
+    print('* average * :  ', average)
+    return average
+
+
+def create_graph(lst):
+
+    y_lst = []
+    for e in lst:
+        print("calculate for M = " + str(e))
+        accuracy = experiment(e)
+        y_lst.append(accuracy)
+
+    plt.ylabel('Accuracy')
+    plt.xlabel('M parameter')
+    plt.plot(lst, y_lst)
+
+    for i in range(len(lst)):
+        f'{lst[i]:.5f}'
+        #text = "(" + str(lst[i]) + ", " + str(y_lst[i]) + ")"
+        text = "(" + str(lst[i]) + ", " + f'{y_lst[i]:.5f}' + ")"
+        plt.text(lst[i], y_lst[i], s=text)
+
+    plt.show()
+
+
+
+def calculate_accuracy(data_frame, tree):
+    test_real_diagnosis = [diagnosis for diagnosis in data_frame["diagnosis"]]
+    correct_answer = 0
+    wrong_answers = 0
+    for i in range(len(test_real_diagnosis)):
+        #print('test sample: ', data_frame.iloc[i:i + 1])
+        result = Classifier(data_frame.iloc[i:i + 1], tree)
+        real_diagnosis_bool = True if test_real_diagnosis[i] == 'M' else False
+        if result == real_diagnosis_bool:
+            correct_answer += 1
+        else:
+            wrong_answers += 1
+    accuracy = correct_answer / len(test_real_diagnosis)
+    return accuracy
+
+
+def run_system():  # run_system() no inputs, the output is accuracy, make sure train.csv and test.csv in the project dir
+
+    # read csv files
+    file = pd.read_csv('train.csv')
+    file2 = pd.read_csv('test.csv')
+
+    # create DataFrames with pandas
+    data_frame = pd.DataFrame(file)
+    data_frame_test = pd.DataFrame(file2)
+
+    # todo step 1 : training
+    tree = ID3(data_frame, True, 0)                   # main function
+
+    # todo step 2 : testing
+    accuracy = calculate_accuracy(data_frame_test, tree)
+    print(accuracy)
 
 
 
