@@ -28,14 +28,15 @@ def ID3(data_frame, classification):
 
 
 
-    feature_set = {element for element in data_frame}
+    feature_set = [element for element in data_frame]
     #feature_set_tmp = {'perimeter_mean', 'perimeter_worst', 'texture_mean', 'concavity_mean', 'symmetry_mean', 'area_se', 'compactness_mean', 'area_worst', 'smoothness_worst', 'smoothness_mean', 'texture_se', 'concavity_worst', 'symmetry_worst', 'fractal_dimension_se', 'texture_worst', 'concave points_se', 'smoothness_se', 'concavity_se', 'fractal_dimension_worst', 'perimeter_se', 'radius_worst', 'concave points_worst', 'compactness_worst', 'diagnosis', 'compactness_se', 'fractal_dimension_mean', 'concave points_mean', 'symmetry_se', 'area_mean', 'radius_mean', 'radius_se'}
     #feature_set_tmp = {'perimeter_mean', 'perimeter_worst'}
     #feature_set_tmp = {'radius_mean', 'symmetry_worst', 'texture_mean', 'area_mean', 'perimeter_worst'}
-    #print(data_frame)
+    #print('before: \n', data_frame)
     best_feature, best_threshold = MaxIG(data_frame, feature_set)        # Select the best feature
-    print(best_feature, best_threshold)
-    # 0.9380530973451328
+    #print('after: \n', data_frame)
+    #print(best_feature, best_threshold) # 0.9380530973451328
+
     if all_values_equal(data_frame, best_feature):
         tree.classification = classification
         return tree
@@ -45,8 +46,8 @@ def ID3(data_frame, classification):
 
     #print(best_feature, best_threshold)
 
-    smaller_equal_df = smaller_equal_df[smaller_equal_df[best_feature] <= best_threshold]  # create data frame with people with feature <= threshold
-    bigger_df = bigger_df[bigger_df[best_feature] > best_threshold]  # create data frame with people with feature > threshold
+    smaller_equal_df = smaller_equal_df[smaller_equal_df[best_feature] < best_threshold]  # create data frame with people with feature <= threshold
+    bigger_df = bigger_df[bigger_df[best_feature] >= best_threshold]  # create data frame with people with feature > threshold
 
     #print("smaller equal df: \n", smaller_equal_df)
     #print("bigger df: \n", bigger_df)
@@ -70,7 +71,7 @@ def MaxIG(data_frame, feature_set):            # calculate the feature that has 
     max_value_feature = ""
     best_threshold = -1
     for feature in feature_set:
-        if(feature == "diagnosis"):
+        if feature == "diagnosis":
             continue
 
         value, threshold = IG(data_frame, feature)
@@ -83,6 +84,7 @@ def MaxIG(data_frame, feature_set):            # calculate the feature that has 
 
 
 def IG(data_frame, feature):      # calculate the max threshold for certain feature
+    #print(feature)
     ig_max_value = -1
     ig_max_threshold = -1
     current_ig = calculate_entropy(data_frame)
@@ -94,6 +96,7 @@ def IG(data_frame, feature):      # calculate the max threshold for certain feat
         #threshold = 10
         first = data_frame.iloc[i:i+2][feature].iloc[0]
         second = data_frame.iloc[i:i+2][feature].iloc[1]
+        #print(first, second)
         threshold = (first + second)/2
         #threshold = (data_frame[feature][i] + data_frame[feature][i+1])/2
         #print("threshold", threshold)
@@ -110,8 +113,11 @@ def calculate_IG_for_threshold(data_frame, threshold, feature):         # calcul
     #print(threshold)
     total_len = len(data_frame["diagnosis"])
 
-    smaller_equal_df = data_frame[data_frame[feature] <= threshold]  # create data frame with people with feature <= threshold
-    bigger_df = data_frame[data_frame[feature] > threshold]  # create data frame with people with feature > threshold
+    smaller_equal_df = data_frame.copy()
+    bigger_df = data_frame.copy()
+
+    smaller_equal_df = smaller_equal_df[smaller_equal_df[feature] < threshold]  # create data frame with people with feature <= threshold
+    bigger_df = bigger_df[bigger_df[feature] >= threshold]  # create data frame with people with feature > threshold
 
     smaller_equal_df_len = len(smaller_equal_df)
     bigger_df_len = len(bigger_df)
@@ -176,7 +182,7 @@ def Classifier(data_frame, tree):
 
     current_feature = tree.feature
     current_threshold = tree.threshold
-    if data_frame[current_feature] <= current_threshold:
+    if data_frame[current_feature] < current_threshold:
         return Classifier(data_frame, tree.leftNode)
     else:
         return Classifier(data_frame, tree.rightNode)
