@@ -2,6 +2,7 @@ from math import log
 import pandas as pd
 from sklearn.model_selection import KFold
 import matplotlib.pyplot as plt
+from timeit import default_timer as timer
 
 class Tree:
 
@@ -13,134 +14,157 @@ class Tree:
         self.rightNode = None
 
 
-def ID3(data_frame, classification, m_param):
+def ID3(example_set, feature_set, classification, m_param):
     tree = Tree()
-    if len(data_frame["diagnosis"]) <= 0:
+    if len(example_set) <= 0:
         tree.classification = classification
         return tree
 
-    classification = MajorityClass(data_frame)
+    classification = MajorityClass(example_set)
 
-    if len(data_frame) <= m_param:
+    if len(example_set) < m_param:
         tree.classification = classification
         return tree
 
-    if isLeaf(data_frame) is True:
+    if isLeaf(example_set) is True:
         tree.classification = classification
         return tree
 
-    feature_set = [element for element in data_frame]
-    #feature_set_tmp = {'perimeter_mean', 'perimeter_worst', 'texture_mean', 'concavity_mean', 'symmetry_mean', 'area_se', 'compactness_mean', 'area_worst', 'smoothness_worst', 'smoothness_mean', 'texture_se', 'concavity_worst', 'symmetry_worst', 'fractal_dimension_se', 'texture_worst', 'concave points_se', 'smoothness_se', 'concavity_se', 'fractal_dimension_worst', 'perimeter_se', 'radius_worst', 'concave points_worst', 'compactness_worst', 'diagnosis', 'compactness_se', 'fractal_dimension_mean', 'concave points_mean', 'symmetry_se', 'area_mean', 'radius_mean', 'radius_se'}
-    #feature_set_tmp = {'perimeter_mean', 'perimeter_worst'}
-    #feature_set_tmp = {'radius_mean', 'symmetry_worst', 'texture_mean', 'area_mean', 'perimeter_worst'}
-    #print('before: \n', data_frame)
-    best_feature, best_threshold = MaxIG(data_frame, feature_set)        # Select the best feature
-    #print('after: \n', data_frame)
-    #print(best_feature, best_threshold) # 0.9380530973451328
-
-    if all_values_equal(data_frame, best_feature):
-        tree.classification = classification
-        return tree
-
-    smaller_equal_df = data_frame.copy()
-    bigger_df = data_frame.copy()
+    best_feature_index, best_threshold, best_feature_name = MaxIG(example_set, feature_set)        # Select the best feature
 
     #print(best_feature, best_threshold)
 
-    smaller_equal_df = smaller_equal_df[smaller_equal_df[best_feature] < best_threshold]  # create data frame with people with feature <= threshold
-    bigger_df = bigger_df[bigger_df[best_feature] >= best_threshold]  # create data frame with people with feature > threshold
+    if all_values_equal(example_set, best_feature_index):
+        tree.classification = classification
+        return tree
 
-    #print("smaller equal df: \n", smaller_equal_df)
-    #print("bigger df: \n", bigger_df)
 
-    tree.feature = best_feature
+    #print(best_feature, best_threshold)
+
+#    smaller_equal_df = data_frame[data_frame[best_feature] < best_threshold]  # create data frame with people with feature <= threshold
+#    bigger_df = data_frame[data_frame[best_feature] >= best_threshold]  # create data frame with people with feature > threshold
+    smaller = []
+    bigger_equal = []
+    for line in example_set:
+        if line[best_feature_index] < best_threshold:
+            smaller.append(line)
+        else:
+            bigger_equal.append(line)
+
+    tree.feature = best_feature_name
+
     tree.threshold = best_threshold
 
-    tree.leftNode = ID3(smaller_equal_df, classification, m_param)
+    tree.leftNode = ID3(smaller, feature_set, classification, m_param)
 
-    tree.rightNode = ID3(bigger_df, classification, m_param)
-
-    # print(smaller_equal_df)
-    # print(bigger_df)
-    # print('best_feature:', best_feature)
+    tree.rightNode = ID3(bigger_equal, feature_set, classification, m_param)
 
     return tree
 
 
-def MaxIG(data_frame, feature_set):            # calculate the feature that has most IG
+def MaxIG(example_set, feature_set):            # calculate the feature that has most IG
     max_value = -1
-    max_value_feature = ""
+    max_value_feature_index = -1
+    max_value_feature_name = ""
     best_threshold = -1
     for feature in feature_set:
         if feature == "diagnosis":
             continue
 
-        value, threshold = IG(data_frame, feature)
-        print('value: ', value, " | feature: ", feature, " | threshold: ", threshold)
+        curr_feature_index = feature_set.index(feature)
+        # recent changes:
+        # new_df = data_frame[["diagnosis", feature]]
+        # arr = new_df.to_numpy()
+        value, threshold = IG(example_set, curr_feature_index)
+
+
+
+
+        #value, threshold = IG(data_frame, feature)
+        #print('value: ', value, " | feature: ", feature, " | threshold: ", threshold)
         if value > max_value:
             max_value = value
-            max_value_feature = feature
+            max_value_feature_index = curr_feature_index
+            max_value_feature_name = feature
             best_threshold = threshold
-    return max_value_feature, best_threshold
+    return max_value_feature_index, best_threshold, max_value_feature_name
 
 
-def IG(data_frame, feature):      # calculate the max threshold for certain feature
-    #print(feature)
+def IG(arr, feature_index):      # calculate the max threshold for certain feature
+
+    arr_len = len(arr)
+
+
     ig_max_value = -1
     ig_max_threshold = -1
-    current_ig = calculate_entropy(data_frame)
-#    print('current_ig: ', current_ig)
-    for i in range(len(data_frame)-1):
-    #for i in range(2):
-        #print(data_frame[feature][i], data_frame[feature][i+1])
-        #print(len(data_frame) - 1)
-        #threshold = 10
-        first = data_frame.iloc[i:i+2][feature].iloc[0]
-        second = data_frame.iloc[i:i+2][feature].iloc[1]
-        #print(first, second)
-        threshold = (first + second)/2
-        #threshold = (data_frame[feature][i] + data_frame[feature][i+1])/2
-        #print("threshold", threshold)
-        ig_value = calculate_IG_for_threshold(data_frame, threshold, feature)
+    current_ig = calculate_entropy(arr)
+
+    for i in range(arr_len - 1):
+        sum = arr[i][feature_index] + arr[i + 1][feature_index]
+        threshold = sum / 2
+        ig_value = calculate_IG_for_threshold(arr, feature_index, threshold, arr_len)  # passing arr_len to save run time
         ig_diff = current_ig - ig_value
-        #print(ig_value)
-        if(ig_diff > ig_max_value):
+        if ig_diff > ig_max_value:
             ig_max_value = ig_diff
             ig_max_threshold = threshold
     return ig_max_value, ig_max_threshold
 
 
-def calculate_IG_for_threshold(data_frame, threshold, feature):         # calculate entropy for certain threshold for certain feature
-    #print(threshold)
-    total_len = len(data_frame["diagnosis"])
+    # ig_max_value = -1
+    # ig_max_threshold = -1
+    # current_ig = calculate_entropy(data_frame)
+    # for i in range(len(data_frame)-1):
+    #
+    #     first = data_frame.iloc[i:i+2][feature].iloc[0]
+    #     second = data_frame.iloc[i:i+2][feature].iloc[1]
+    #     threshold = (first + second)/2
+    #
+    #     ig_value = calculate_IG_for_threshold(data_frame, threshold, feature)
+    #     ig_diff = current_ig - ig_value
+    #
+    #     if(ig_diff > ig_max_value):
+    #         ig_max_value = ig_diff
+    #         ig_max_threshold = threshold
+    # return ig_max_value, ig_max_threshold
 
-    smaller_equal_df = data_frame.copy()
-    bigger_df = data_frame.copy()
 
-    smaller_equal_df = smaller_equal_df[smaller_equal_df[feature] < threshold]  # create data frame with people with feature <= threshold
-    bigger_df = bigger_df[bigger_df[feature] >= threshold]  # create data frame with people with feature > threshold
+def calculate_IG_for_threshold(arr, feature_index, threshold, arr_len):         # calculate entropy for certain threshold for certain feature
+    smaller = []
+    bigger_equal = []
+    for i in range(arr_len):
+        if arr[i][feature_index] >= threshold:
+            smaller.append(arr[i])
+        else:
+            bigger_equal.append(arr[i])
+    # total_len = len(data_frame["diagnosis"])
+    #
+    #
+    #
+    # smaller_equal_df = data_frame[data_frame[feature] < threshold]  # create data frame with people with feature <= threshold
+    # bigger_df = data_frame[data_frame[feature] >= threshold]  # create data frame with people with feature > threshold
+    #
+    # smaller_equal_df_len = len(smaller_equal_df)
+    # bigger_df_len = len(bigger_df)
+    #
+    # return (smaller_equal_df_len/total_len) * calculate_entropy(smaller_equal_df) + (bigger_df_len/total_len) * calculate_entropy(bigger_df)
+    return (len(smaller)/arr_len) * calculate_entropy(smaller) + (len(bigger_equal)/arr_len) * calculate_entropy(bigger_equal)
 
-    smaller_equal_df_len = len(smaller_equal_df)
-    bigger_df_len = len(bigger_df)
 
-    return (smaller_equal_df_len/total_len) * calculate_entropy(smaller_equal_df) + (bigger_df_len/total_len) * calculate_entropy(bigger_df)
+def calculate_entropy(arr):
 
-
-def calculate_entropy(data_frame):
-    total_len = len(data_frame["diagnosis"])
-
-    if total_len == 0:
+    arr_len = len(arr)
+    if arr_len == 0:
         return 0
 
     total_M = 0
     total_B = 0
-    for line in data_frame["diagnosis"]:
-        if line == 'M':
+    for line in arr:
+        if line[0] == 'M':
             total_M += 1
-        elif line == 'B':
+        else:
             total_B += 1
-    B_percentage = total_B / total_len
-    M_percentage = total_M / total_len
+    B_percentage = total_B / arr_len
+    M_percentage = total_M / arr_len
     if B_percentage == 0:
         return (-1) * M_percentage * log(M_percentage, 2)
     if M_percentage == 0:
@@ -150,26 +174,26 @@ def calculate_entropy(data_frame):
     return (-1)*(num1+num2)
 
 
-def isLeaf(data_frame):
+def isLeaf(example_set):
     M_counter = 0
     B_counter = 0
-    for line in data_frame["diagnosis"]:
-        if line == 'M':
+    for line in example_set:
+        if line[0] == 'M':
             M_counter += 1
-        elif line == 'B':
+        else:
             B_counter += 1
     if M_counter == 0 or B_counter == 0:
         return True
     return False
 
 
-def MajorityClass(data_frame):      # True if |M| >= |B| , False if |M| < |B|
+def MajorityClass(example_set):      # True if |M| >= |B| , False if |M| < |B|
     M_counter = 0
     B_counter = 0
-    for line in data_frame["diagnosis"]:
-        if line == 'M':
+    for line in example_set:
+        if line[0] == 'M':
             M_counter += 1
-        elif line == 'B':
+        else:
             B_counter += 1
     if M_counter >= B_counter:
         return True
@@ -189,10 +213,10 @@ def Classifier(data_frame, tree):
         return Classifier(data_frame, tree.rightNode)
 
 
-def all_values_equal(data_frame,feature):
-    first = data_frame[feature].iloc[0]
-    for line in data_frame[feature]:
-        if(line != first):
+def all_values_equal(example_set, feature_index):
+    first = example_set[0][feature_index]
+    for line in example_set:
+        if line[feature_index] != first:
             return False
     return True
 
@@ -204,6 +228,7 @@ def experiment(m_param):  # experiment() , input: M parameter, output: accuracy,
 
     # create DataFrame with pandas
     data_frame = pd.DataFrame(file)
+    feature_set = [element for element in data_frame]
 
     accuracy_list = []
     sum = 0
@@ -219,8 +244,10 @@ def experiment(m_param):  # experiment() , input: M parameter, output: accuracy,
         # print(test_current_data_frame)
         # print("\n\n")
 
-        tree = ID3(train_current_data_frame, True, m_param)  # learn on that data_frame
-        accuracy = calculate_accuracy(test_current_data_frame, tree)  # test on data_frame
+        train_current_list = train_current_data_frame.to_numpy()
+
+        tree = ID3(train_current_list, feature_set, True, m_param)  # learn on that training set
+        accuracy = calculate_accuracy(test_current_data_frame, tree)  # test on the last piece
         accuracy_list.append(accuracy)
         print('accuracy: ', accuracy)
     for e in accuracy_list:
@@ -277,12 +304,16 @@ def run_system():  # run_system() no inputs, the output is accuracy, make sure t
     data_frame = pd.DataFrame(file)
     data_frame_test = pd.DataFrame(file2)
 
+    feature_set = [element for element in data_frame]
+    example_set = data_frame.to_numpy()
+
     # todo step 1 : training
-    tree = ID3(data_frame, True, 0)                   # main function
+    tree = ID3(example_set, feature_set, True, 0)                   # main function
 
     # todo step 2 : testing
     accuracy = calculate_accuracy(data_frame_test, tree)
     print(accuracy)
+
 
 
 
