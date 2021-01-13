@@ -76,7 +76,7 @@ def MaxIG(data_frame, feature_set):            # calculate the feature that has 
             continue
 
         value, threshold = IG(data_frame, feature)
-        #print('value: ', value, " | feature: ", feature, " | threshold: ", threshold)
+        print('value: ', value, " | feature: ", feature, " | threshold: ", threshold)
         if value > max_value:
             max_value = value
             max_value_feature = feature
@@ -249,7 +249,6 @@ def create_graph(lst):
         plt.text(lst[i], y_lst[i], s=text)
 
     plt.show()
-
 
 
 def calculate_accuracy(data_frame, tree):
