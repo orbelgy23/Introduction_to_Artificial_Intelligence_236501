@@ -4,6 +4,7 @@ from sklearn.model_selection import KFold
 import matplotlib.pyplot as plt
 from timeit import default_timer as timer
 
+
 class Tree:
 
     def __init__(self):
@@ -16,6 +17,7 @@ class Tree:
 
 def ID3(example_set, feature_set, classification, m_param):
     tree = Tree()
+
     if len(example_set) <= 0:
         tree.classification = classification
         return tree
@@ -41,8 +43,6 @@ def ID3(example_set, feature_set, classification, m_param):
 
     #print(best_feature, best_threshold)
 
-#    smaller_equal_df = data_frame[data_frame[best_feature] < best_threshold]  # create data frame with people with feature <= threshold
-#    bigger_df = data_frame[data_frame[best_feature] >= best_threshold]  # create data frame with people with feature > threshold
     smaller = []
     bigger_equal = []
     for line in example_set:
@@ -77,11 +77,8 @@ def MaxIG(example_set, feature_set):            # calculate the feature that has
         # arr = new_df.to_numpy()
         value, threshold = IG(example_set, curr_feature_index)
 
-
-
-
-        #value, threshold = IG(data_frame, feature)
-        #print('value: ', value, " | feature: ", feature, " | threshold: ", threshold)
+        # value, threshold = IG(data_frame, feature)
+        # print('value: ', value, " | feature: ", feature, " | threshold: ", threshold)
         if value > max_value:
             max_value = value
             max_value_feature_index = curr_feature_index
@@ -93,7 +90,6 @@ def MaxIG(example_set, feature_set):            # calculate the feature that has
 def IG(arr, feature_index):      # calculate the max threshold for certain feature
 
     arr_len = len(arr)
-
 
     ig_max_value = -1
     ig_max_threshold = -1
@@ -110,43 +106,15 @@ def IG(arr, feature_index):      # calculate the max threshold for certain featu
     return ig_max_value, ig_max_threshold
 
 
-    # ig_max_value = -1
-    # ig_max_threshold = -1
-    # current_ig = calculate_entropy(data_frame)
-    # for i in range(len(data_frame)-1):
-    #
-    #     first = data_frame.iloc[i:i+2][feature].iloc[0]
-    #     second = data_frame.iloc[i:i+2][feature].iloc[1]
-    #     threshold = (first + second)/2
-    #
-    #     ig_value = calculate_IG_for_threshold(data_frame, threshold, feature)
-    #     ig_diff = current_ig - ig_value
-    #
-    #     if(ig_diff > ig_max_value):
-    #         ig_max_value = ig_diff
-    #         ig_max_threshold = threshold
-    # return ig_max_value, ig_max_threshold
-
-
 def calculate_IG_for_threshold(arr, feature_index, threshold, arr_len):         # calculate entropy for certain threshold for certain feature
     smaller = []
     bigger_equal = []
     for i in range(arr_len):
         if arr[i][feature_index] >= threshold:
-            smaller.append(arr[i])
-        else:
             bigger_equal.append(arr[i])
-    # total_len = len(data_frame["diagnosis"])
-    #
-    #
-    #
-    # smaller_equal_df = data_frame[data_frame[feature] < threshold]  # create data frame with people with feature <= threshold
-    # bigger_df = data_frame[data_frame[feature] >= threshold]  # create data frame with people with feature > threshold
-    #
-    # smaller_equal_df_len = len(smaller_equal_df)
-    # bigger_df_len = len(bigger_df)
-    #
-    # return (smaller_equal_df_len/total_len) * calculate_entropy(smaller_equal_df) + (bigger_df_len/total_len) * calculate_entropy(bigger_df)
+        else:
+            smaller.append(arr[i])
+
     return (len(smaller)/arr_len) * calculate_entropy(smaller) + (len(bigger_equal)/arr_len) * calculate_entropy(bigger_equal)
 
 
@@ -247,7 +215,7 @@ def experiment(m_param):  # experiment() , input: M parameter, output: accuracy,
         train_current_list = train_current_data_frame.to_numpy()
 
         tree = ID3(train_current_list, feature_set, True, m_param)  # learn on that training set
-        accuracy = calculate_accuracy(test_current_data_frame, tree)  # test on the last piece
+        accuracy, loss = calculate_accuracy_and_loss(test_current_data_frame, tree)  # test on the last piece
         accuracy_list.append(accuracy)
         print('accuracy: ', accuracy)
     for e in accuracy_list:
@@ -278,20 +246,34 @@ def create_graph(lst):
     plt.show()
 
 
-def calculate_accuracy(data_frame, tree):
+def calculate_accuracy_and_loss(data_frame, tree):
     test_real_diagnosis = [diagnosis for diagnosis in data_frame["diagnosis"]]
+    #print(test_real_diagnosis)
     correct_answer = 0
     wrong_answers = 0
+    false_negative_counter = 0
+    false_positive_counter = 0
     for i in range(len(test_real_diagnosis)):
-        #print('test sample: ', data_frame.iloc[i:i + 1])
         result = Classifier(data_frame.iloc[i:i + 1], tree)
+        #result = better_classifier(data_frame.iloc[i:i + 1], tree)
+        print(result)
         real_diagnosis_bool = True if test_real_diagnosis[i] == 'M' else False
+        #print('classifier result: ', result, 'Real result: ', real_diagnosis_bool)
         if result == real_diagnosis_bool:
             correct_answer += 1
         else:
             wrong_answers += 1
+            if result is True and real_diagnosis_bool is False:  # this is False Positive situation
+                false_positive_counter += 1
+
+            if result is False and real_diagnosis_bool is True:  # False Negative situation
+                print(i)
+                false_negative_counter += 1
+    print('wrong: ', wrong_answers)
+    print('false_positive_counter: ', false_positive_counter, 'false_negative_counter:', false_negative_counter)
     accuracy = correct_answer / len(test_real_diagnosis)
-    return accuracy
+    loss = ((0.1 * false_positive_counter) + (1 * false_negative_counter)) / len(test_real_diagnosis)
+    return accuracy, loss
 
 
 def run_system():  # run_system() no inputs, the output is accuracy, make sure train.csv and test.csv in the project dir
@@ -310,9 +292,12 @@ def run_system():  # run_system() no inputs, the output is accuracy, make sure t
     # todo step 1 : training
     tree = ID3(example_set, feature_set, True, 0)                   # main function
 
-    # todo step 2 : testing
-    accuracy = calculate_accuracy(data_frame_test, tree)
+    # todo step 2 : test, then check accuracy and loss
+    accuracy, loss = calculate_accuracy_and_loss(data_frame_test, tree)
     print(accuracy)
+
+    # todo question 4.1
+    print(loss)
 
 
 
