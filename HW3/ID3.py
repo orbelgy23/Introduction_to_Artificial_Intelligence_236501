@@ -14,30 +14,56 @@ class Tree:
         self.leftNode = None
         self.rightNode = None
 
+        self.true_childs = None
+        self.false_childs = None
+
+
+def calculate_true_or_false_childs(tree):
+    # if tree.rightNode is None or tree.leftNode is None:
+    #     if tree.rightNode is None:
+    #         return tree.leftNode.true_childs, tree.leftNode.false_childs
+    #     elif tree.leftNode is None:
+    #         return tree.rightNode.true_childs, tree.rightNode.false_childs
+
+    # else:
+    return tree.rightNode.true_childs + tree.leftNode.true_childs, tree.rightNode.false_childs + tree.leftNode.false_childs
+
 
 def ID3(example_set, feature_set, classification, m_param):
     tree = Tree()
+    # print(len(example_set))
 
     if len(example_set) <= 0:
         tree.classification = classification
+        tree.true_childs = 1 if classification is True else 0
+        tree.false_childs = 1 if classification is False else 0
+        return tree
+
+
+
+    if len(example_set) < m_param:
+        tree.classification = classification
+        tree.true_childs = 1 if classification is True else 0
+        tree.false_childs = 1 if classification is False else 0
         return tree
 
     classification = MajorityClass(example_set)
 
-    if len(example_set) < m_param:
-        tree.classification = classification
-        return tree
-
     if isLeaf(example_set) is True:
         tree.classification = classification
+        tree.true_childs = 1 if classification is True else 0
+        tree.false_childs = 1 if classification is False else 0
         return tree
 
     best_feature_index, best_threshold, best_feature_name = MaxIG(example_set, feature_set)        # Select the best feature
 
-    #print(best_feature, best_threshold)
+    #print("best feature: ", best_feature_index, "best threshold: ", best_threshold)
+
 
     if all_values_equal(example_set, best_feature_index):
         tree.classification = classification
+        tree.true_childs = 1 if classification is True else 0
+        tree.false_childs = 1 if classification is False else 0
         return tree
 
 
@@ -59,6 +85,8 @@ def ID3(example_set, feature_set, classification, m_param):
 
     tree.rightNode = ID3(bigger_equal, feature_set, classification, m_param)
 
+    tree.true_childs, tree.false_childs = calculate_true_or_false_childs(tree)
+
     return tree
 
 
@@ -79,12 +107,16 @@ def MaxIG(example_set, feature_set):            # calculate the feature that has
 
         # value, threshold = IG(data_frame, feature)
         # print('value: ', value, " | feature: ", feature, " | threshold: ", threshold)
-        if value > max_value:
+        if value >= max_value:
             max_value = value
             max_value_feature_index = curr_feature_index
             max_value_feature_name = feature
             best_threshold = threshold
     return max_value_feature_index, best_threshold, max_value_feature_name
+
+
+def get_i_element(line, i):
+    return line[i]
 
 
 def IG(arr, feature_index):      # calculate the max threshold for certain feature
@@ -95,8 +127,23 @@ def IG(arr, feature_index):      # calculate the max threshold for certain featu
     ig_max_threshold = -1
     current_ig = calculate_entropy(arr)
 
+    new_lst = []
+
+    for line in arr:
+        new_lst.append(line[feature_index])
+
+    new_lst.sort()
+
     for i in range(arr_len - 1):
-        sum = arr[i][feature_index] + arr[i + 1][feature_index]
+
+
+
+
+        #arr.sort(key=get_i_element(arr[i]))
+
+        sum = new_lst[i] + new_lst[i + 1]
+        if new_lst[i] == new_lst[i + 1]:
+            continue
         threshold = sum / 2
         ig_value = calculate_IG_for_threshold(arr, feature_index, threshold, arr_len)  # passing arr_len to save run time
         ig_diff = current_ig - ig_value
@@ -106,9 +153,13 @@ def IG(arr, feature_index):      # calculate the max threshold for certain featu
     return ig_max_value, ig_max_threshold
 
 
+
+
 def calculate_IG_for_threshold(arr, feature_index, threshold, arr_len):         # calculate entropy for certain threshold for certain feature
     smaller = []
     bigger_equal = []
+
+
     for i in range(arr_len):
         if arr[i][feature_index] >= threshold:
             bigger_equal.append(arr[i])
@@ -163,6 +214,7 @@ def MajorityClass(example_set):      # True if |M| >= |B| , False if |M| < |B|
             M_counter += 1
         else:
             B_counter += 1
+    print('B_counter= ', B_counter, 'M_counter: ', M_counter)
     if M_counter >= B_counter:
         return True
     else:
@@ -256,7 +308,7 @@ def calculate_accuracy_and_loss(data_frame, tree):
     for i in range(len(test_real_diagnosis)):
         result = Classifier(data_frame.iloc[i:i + 1], tree)
         #result = better_classifier(data_frame.iloc[i:i + 1], tree)
-        print(result)
+        #print(result)
         real_diagnosis_bool = True if test_real_diagnosis[i] == 'M' else False
         #print('classifier result: ', result, 'Real result: ', real_diagnosis_bool)
         if result == real_diagnosis_bool:

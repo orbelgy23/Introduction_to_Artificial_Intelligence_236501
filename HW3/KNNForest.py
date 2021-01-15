@@ -42,6 +42,7 @@ def KNN_get_centroids_and_trees(N_param, example_set, feature_set):  # Learn N t
             partial_example_set.append(choice)
             example_set_tmp.remove(choice)
 
+        # partial_example_set = example_set  # experiment
         #print('partial example_set: ', partial_example_set)
         centroid_list = calculate_centroid(partial_example_set)
         #print(centroid_list)
@@ -140,27 +141,27 @@ def calculate_distance(vector1, vector2):
 
 
 
-#KNN_decision_tree(1, 0)
+
 
 # read csv files
 
-file = pd.read_csv('train.csv')
-file2 = pd.read_csv('test.csv')
+#file = pd.read_csv('train.csv')
+#file2 = pd.read_csv('test.csv')
 
 # create DataFrames with pandas
-data_frame = pd.DataFrame(file)
-data_frame_test = pd.DataFrame(file2)
+# data_frame = pd.DataFrame(file)
+# data_frame_test = pd.DataFrame(file2)
 
 #feature_set = [element for element in data_frame]
 #print(feature_set.index("perimeter_mean"))
-se = data_frame.to_numpy()
-for line in se:
-    print(line)
-    break
-for line in se:
-    line = line[1:]
-    print(line)
-    break
+# se = data_frame.to_numpy()
+# for line in se:
+#     print(line)
+#     break
+# for line in se:
+#     line = line[1:]
+#     print(line)
+#     break
 
 # data_frame = data_frame[data_frame["radius_mean"] > 25]
 # se = data_frame.to_numpy()
