@@ -5,63 +5,13 @@ import numpy as np
 from math import sqrt
 
 
-def calculate_centroid(example_set):
-    centroid_list = []
-
-    for i in range(len(example_set[0])):
-        if i == 0:
-            continue
-        sum = 0
-        for line in example_set:
-            #print(line[i])
-            sum += line[i]
-        #print('---------------------')
-        example_set_len = len(example_set)
-        average = sum / example_set_len
-
-        centroid_list.append(average)
-    return centroid_list
-
-
-def KNN_get_centroids_and_trees(N_param, example_set, feature_set):  # Learn N trees and return N centroids
-
-    table_len = len(example_set)
-
-    tree_and_centroid_list = []
-
-    for i in range(N_param):
-        example_set_tmp = example_set
-        example_set_tmp = example_set_tmp.tolist()
-        partial_example_set = []
-        p = 0.3 + (random.random()*0.4)  # random number in the interval [0.3,0,7]
-        partial_example_set_len = int(table_len * p)
-        #print('partial_example_set_len: ', partial_example_set_len)
-
-        for j in range(partial_example_set_len):
-            choice = random.choice(example_set_tmp)
-            partial_example_set.append(choice)
-            example_set_tmp.remove(choice)
-
-        # partial_example_set = example_set  # experiment
-        #print('partial example_set: ', partial_example_set)
-        centroid_list = calculate_centroid(partial_example_set)
-        #print(centroid_list)
-
-        tree = ID3(partial_example_set, feature_set, True, 0)
-
-        new_tuple = (centroid_list, tree)
-        tree_and_centroid_list.append(new_tuple)
-
-    return tree_and_centroid_list
-
-
 def first_element(element):
     return element[0]
 
 
-def KNN_decision_tree(N_param, K_param):  # run_system() no inputs, the output is accuracy, make sure train.csv and test.csv in the project dir
+def KNN_decision_tree(N_param, K_param):
 
-    # todo Phase 1 : Create N trees and centroids in list: [(centroid,tree),...,(centroid,tree)]
+    # todo Phase 1 : Creates N tuples of trees and centroids in list: [(centroid,tree),...,(centroid,tree)]
     # read csv files
     file = pd.read_csv('train.csv')
     file2 = pd.read_csv('test.csv')
@@ -74,7 +24,7 @@ def KNN_decision_tree(N_param, K_param):  # run_system() no inputs, the output i
     feature_set = [element for element in data_frame_train]
     example_set = data_frame_train.to_numpy()
 
-    centroid_and_tree_list = KNN_get_centroids_and_trees(N_param, example_set, feature_set)
+    centroid_and_tree_list = KNN_get_centroids_and_trees(N_param=N_param, example_set=example_set, feature_set=feature_set)
 
     # todo Phase 2 : run test
     correct_answer = 0
@@ -111,6 +61,66 @@ def KNN_decision_tree(N_param, K_param):  # run_system() no inputs, the output i
     return accuracy
 
 
+def KNN_get_centroids_and_trees(N_param, example_set, feature_set):  # Learn N trees and return N centroids
+
+    table_len = len(example_set)
+
+    tree_and_centroid_list = []
+
+    for i in range(N_param):
+        example_set_tmp = example_set
+        example_set_tmp = example_set_tmp.tolist()
+        partial_example_set = []
+        p = 0.3 + (random.random()*0.4)  # random number in the interval [0.3,0,7]
+        partial_example_set_len = int(table_len * p)
+        #print('partial_example_set_len: ', partial_example_set_len)
+
+        for j in range(partial_example_set_len):
+            choice = random.choice(example_set_tmp)
+            partial_example_set.append(choice)
+            example_set_tmp.remove(choice)
+
+        # partial_example_set = example_set  # experiment
+        #print('partial example_set: ', partial_example_set)
+        centroid_list = calculate_centroid(partial_example_set)
+        #print(centroid_list)
+
+        tree = ID3(example_set=partial_example_set, feature_set=feature_set, classification=True, m_param=0)
+
+        new_tuple = (centroid_list, tree)
+        tree_and_centroid_list.append(new_tuple)
+
+    return tree_and_centroid_list
+
+
+def calculate_centroid(example_set):
+    centroid_list = []
+
+    for i in range(len(example_set[0])):
+        if i == 0:
+            continue
+        sum = 0
+        for line in example_set:
+            #print(line[i])
+            sum += line[i]
+        #print('---------------------')
+        example_set_len = len(example_set)
+        average = sum / example_set_len
+
+        centroid_list.append(average)
+    return centroid_list
+
+
+def calculate_distance(vector1, vector2):
+    if len(vector1) != len(vector2):
+        print("not good")
+        return 0
+    sum = 0
+    for i in range(len(vector1)):
+        sum += (vector1[i]-vector2[i])*(vector1[i]-vector2[i])
+    return sqrt(sum)
+
+
 def check_single_example_on_K_trees(single_example, distances_and_trees, K_param):
     M_counter = 0
     B_counter = 0
@@ -125,49 +135,26 @@ def check_single_example_on_K_trees(single_example, distances_and_trees, K_param
     return total_result
 
 
-def calculate_distance(vector1, vector2):
-    if len(vector1) != len(vector2):
-        print("not good")
-        return 0
-    sum = 0
-    for i in range(len(vector1)):
-        sum += (vector1[i]-vector2[i])*(vector1[i]-vector2[i])
-    return sqrt(sum)
+def KNN_decision_tree_experiment(N_param):        # check for the best N and K parameters
 
-
-
-
-
-
-
-
-
-
-# read csv files
-
-#file = pd.read_csv('train.csv')
-#file2 = pd.read_csv('test.csv')
-
-# create DataFrames with pandas
-# data_frame = pd.DataFrame(file)
-# data_frame_test = pd.DataFrame(file2)
-
-#feature_set = [element for element in data_frame]
-#print(feature_set.index("perimeter_mean"))
-# se = data_frame.to_numpy()
-# for line in se:
-#     print(line)
-#     break
-# for line in se:
-#     line = line[1:]
-#     print(line)
-#     break
-
-# data_frame = data_frame[data_frame["radius_mean"] > 25]
-# se = data_frame.to_numpy()
-# print(se)
-
-
+    max_avg = 0
+    max_N, max_K = 0, 0
+    max_accuracy = 0
+    for i in range(1, N_param + 1):
+        for j in range(1, i + 1):
+            accuracy_lst = []
+            sum = 0
+            print("calculate for N = " + str(i) + " K = " + str(j))
+            for k in range(5):
+                accuracy_lst.append(KNN_decision_tree(i, j))
+            for e in accuracy_lst:
+                sum += e
+            avg = sum / 5
+            if avg > max_avg:
+                max_avg = avg
+                max_N, max_K = i, j
+                max_accuracy = max(accuracy_lst)
+    print("best N = " + str(max_N) + " best K = " + str(max_K) + " best accuracy for this parameters: " + str(max_accuracy))
 
 
 

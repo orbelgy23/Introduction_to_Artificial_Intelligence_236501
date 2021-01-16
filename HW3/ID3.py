@@ -214,7 +214,7 @@ def MajorityClass(example_set):      # True if |M| >= |B| , False if |M| < |B|
             M_counter += 1
         else:
             B_counter += 1
-    print('B_counter= ', B_counter, 'M_counter: ', M_counter)
+    #print('B_counter= ', B_counter, 'M_counter: ', M_counter)
     if M_counter >= B_counter:
         return True
     else:
@@ -251,7 +251,7 @@ def experiment(m_param):  # experiment() , input: M parameter, output: accuracy,
     feature_set = [element for element in data_frame]
 
     accuracy_list = []
-    sum = 0
+    sum_ = 0
     kf = KFold(n_splits=5, random_state=123456789, shuffle=True)
     splitted = kf.split(data_frame)
 
@@ -266,14 +266,17 @@ def experiment(m_param):  # experiment() , input: M parameter, output: accuracy,
 
         train_current_list = train_current_data_frame.to_numpy()
 
-        tree = ID3(train_current_list, feature_set, True, m_param)  # learn on that training set
+        tree = ID3(example_set=train_current_list, feature_set=feature_set, classification=True, m_param=m_param)  # learn on that training set
+
         accuracy, loss = calculate_accuracy_and_loss(test_current_data_frame, tree)  # test on the last piece
+
         accuracy_list.append(accuracy)
-        print('accuracy: ', accuracy)
-    for e in accuracy_list:
-        sum += e
-    average = sum / len(accuracy_list)
-    print('* average * :  ', average)
+        #print('accuracy: ', accuracy)
+    sum_ = sum(accuracy_list)
+    # for e in accuracy_list:
+    #     sum_ += e
+    average = sum_ / len(accuracy_list)
+    print(average)
     return average
 
 
@@ -281,7 +284,7 @@ def create_graph(lst):
 
     y_lst = []
     for e in lst:
-        print("calculate for M = " + str(e))
+        print("calculating for M = " + str(e) + " ...")
         accuracy = experiment(e)
         y_lst.append(accuracy)
 
@@ -319,36 +322,54 @@ def calculate_accuracy_and_loss(data_frame, tree):
                 false_positive_counter += 1
 
             if result is False and real_diagnosis_bool is True:  # False Negative situation
-                print(i)
+                #print(i)
                 false_negative_counter += 1
-    print('wrong: ', wrong_answers)
-    print('false_positive_counter: ', false_positive_counter, 'false_negative_counter:', false_negative_counter)
+    # print('wrong: ', wrong_answers)
+    # print('false_positive_counter: ', false_positive_counter, 'false_negative_counter:', false_negative_counter)
     accuracy = correct_answer / len(test_real_diagnosis)
     loss = ((0.1 * false_positive_counter) + (1 * false_negative_counter)) / len(test_real_diagnosis)
     return accuracy, loss
 
 
-def run_system():  # run_system() no inputs, the output is accuracy, make sure train.csv and test.csv in the project dir
+def run_question_1():  # no inputs, the output is accuracy, make sure train.csv and test.csv in the project dir
 
     # read csv files
     file = pd.read_csv('train.csv')
     file2 = pd.read_csv('test.csv')
 
     # create DataFrames with pandas
-    data_frame = pd.DataFrame(file)
+    data_frame_train = pd.DataFrame(file)
     data_frame_test = pd.DataFrame(file2)
 
-    feature_set = [element for element in data_frame]
-    example_set = data_frame.to_numpy()
+    feature_set = [element for element in data_frame_train]  # creates list with all the features
+    example_set = data_frame_train.to_numpy()                # convert pandas data frame to numpy - saves run time
 
     # todo step 1 : training
-    tree = ID3(example_set, feature_set, True, 0)                   # main function
+    tree = ID3(example_set=example_set, feature_set=feature_set, classification=True, m_param=0)  # main function
 
-    # todo step 2 : test, then check accuracy and loss
+    # todo step 2 : test, then check accuracy
     accuracy, loss = calculate_accuracy_and_loss(data_frame_test, tree)
     print(accuracy)
 
-    # todo question 4.1
+
+def run_question_4_1():  # no inputs, the output is loss, make sure train.csv and test.csv in the project dir
+
+    # read csv files
+    file = pd.read_csv('train.csv')
+    file2 = pd.read_csv('test.csv')
+
+    # create DataFrames with pandas
+    data_frame_train = pd.DataFrame(file)
+    data_frame_test = pd.DataFrame(file2)
+
+    feature_set = [element for element in data_frame_train]  # creates list with all the features
+    example_set = data_frame_train.to_numpy()                # convert pandas data frame to numpy - saves run time
+
+    # todo step 1 : training
+    tree = ID3(example_set=example_set, feature_set=feature_set, classification=True, m_param=0)  # main function
+
+    # todo step 2 : test, then check accuracy
+    accuracy, loss = calculate_accuracy_and_loss(data_frame_test, tree)
     print(loss)
 
 
