@@ -252,7 +252,7 @@ def experiment(m_param):  # experiment() , input: M parameter, output: accuracy,
 
     accuracy_list = []
     sum_ = 0
-    kf = KFold(n_splits=5, random_state=123456789, shuffle=True)
+    kf = KFold(n_splits=5, random_state=316406321, shuffle=True)
     splitted = kf.split(data_frame)
 
     for test in splitted:

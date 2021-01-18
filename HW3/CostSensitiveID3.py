@@ -23,13 +23,13 @@ def calculate_accuracy_and_loss(data_frame, tree):
             wrong_answers += 1
             if result is True and real_diagnosis_bool is False:  # this is False Positive situation
                 false_positive_counter += 1
-                print(i)
+                # print(i)
 
             if result is False and real_diagnosis_bool is True:  # False Negative situation
-                print(i)
+                # print(i)
                 false_negative_counter += 1
     # print('wrong: ', wrong_answers)
-    print('false_positive_counter: ', false_positive_counter, 'false_negative_counter:', false_negative_counter)
+    # print('false_positive_counter: ', false_positive_counter, 'false_negative_counter:', false_negative_counter)
     accuracy = correct_answer / len(test_real_diagnosis)
     loss = ((0.1 * false_positive_counter) + (1 * false_negative_counter)) / len(test_real_diagnosis)
     return accuracy, loss
@@ -84,11 +84,11 @@ def run_question_4_3():  # no inputs, the output is loss, make sure train.csv an
     example_set = data_frame.to_numpy()
 
     # todo step 1 : training
-    tree = ID3(example_set=example_set, feature_set=feature_set, classification=True, m_param=5)  # m = 5 best for reducing the loss
+    tree = ID3(example_set=example_set, feature_set=feature_set, classification=True, m_param=0)  # m = 5 best for reducing the loss
 
     # todo step 2 : test, then check accuracy and loss
     accuracy, loss = calculate_accuracy_and_loss(data_frame_test, tree)  # function uses better_classifier()
-    print(accuracy)
+    #print(accuracy)
     print(loss)
 
 
