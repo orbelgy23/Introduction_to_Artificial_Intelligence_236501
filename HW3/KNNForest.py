@@ -33,9 +33,9 @@ def KNN_decision_tree(N_param, K_param):
 
     for i in range(data_frame_test_len):
 
-        sample_vector = test_set[i][1:]           # create vector of all the features values
+        sample_vector = test_set[i][1:]           # given new example -> create vector of all the features values
 
-        # here we check distance between the single example centroid and the Trees centroids
+        # here we check distance between the single example centroid and the trees centroids
         distance_and_tree_list = []
         for element in centroid_and_tree_list:        # creates list with Euclidean distances
             distance = calculate_distance(element[0], sample_vector)
@@ -44,11 +44,11 @@ def KNN_decision_tree(N_param, K_param):
 
         distance_and_tree_list.sort(key=first_element)         # sort by distance
 
-        # here we send the single example to function that return the result of the committee
+        # here we send the single example to function that returns the result of the committee
         single_example = data_frame_test.iloc[i:i + 1]
         total_result = check_single_example_on_K_trees(single_example, distance_and_tree_list, K_param)  # check the single example on K trees
 
-        # here we check if the the Answer for our single example test is correct?
+        # here we check if the the answer for our single example is correct?
         real_diagnosis_bool = True if test_set[i][0] == 'M' else False
         if total_result == real_diagnosis_bool:
             correct_answer += 1
@@ -67,23 +67,20 @@ def KNN_get_centroids_and_trees(N_param, example_set, feature_set):  # Learn N t
 
     tree_and_centroid_list = []
 
+    p = 0.3 + (random.random() * 0.4)  # random number in the interval [0.3,0,7]
+    partial_example_set_len = int(table_len * p)
+
     for i in range(N_param):
         example_set_tmp = example_set
         example_set_tmp = example_set_tmp.tolist()
         partial_example_set = []
-        p = 0.3 + (random.random()*0.4)  # random number in the interval [0.3,0,7]
-        partial_example_set_len = int(table_len * p)
-        #print('partial_example_set_len: ', partial_example_set_len)
 
-        for j in range(partial_example_set_len):
+        for j in range(partial_example_set_len):       # selects subset of the example set
             choice = random.choice(example_set_tmp)
             partial_example_set.append(choice)
             example_set_tmp.remove(choice)
 
-        # partial_example_set = example_set  # experiment
-        #print('partial example_set: ', partial_example_set)
-        centroid_list = calculate_centroid(partial_example_set)
-        #print(centroid_list)
+        centroid_list = calculate_centroid(partial_example_set)   # calculate centroid
 
         tree = ID3(example_set=partial_example_set, feature_set=feature_set, classification=True, m_param=0)
 
@@ -99,13 +96,13 @@ def calculate_centroid(example_set):
     for i in range(len(example_set[0])):
         if i == 0:
             continue
-        sum = 0
+
+        sum_ = 0
         for line in example_set:
-            #print(line[i])
-            sum += line[i]
-        #print('---------------------')
+            sum_ += line[i]
+
         example_set_len = len(example_set)
-        average = sum / example_set_len
+        average = sum_ / example_set_len
 
         centroid_list.append(average)
     return centroid_list
@@ -113,12 +110,12 @@ def calculate_centroid(example_set):
 
 def calculate_distance(vector1, vector2):
     if len(vector1) != len(vector2):
-        print("not good")
-        return 0
-    sum = 0
+        print("The dimensions of the vectors are not equal")
+        return -1
+    sum_ = 0
     for i in range(len(vector1)):
-        sum += (vector1[i]-vector2[i])*(vector1[i]-vector2[i])
-    return sqrt(sum)
+        sum_ += (vector1[i]-vector2[i])*(vector1[i]-vector2[i])
+    return sqrt(sum_)
 
 
 def check_single_example_on_K_trees(single_example, distances_and_trees, K_param):
@@ -131,7 +128,7 @@ def check_single_example_on_K_trees(single_example, distances_and_trees, K_param
             M_counter += 1
         else:
             B_counter += 1
-    total_result = True if M_counter >= B_counter else False
+    total_result = True if M_counter > B_counter else False
     return total_result
 
 
@@ -155,7 +152,3 @@ def KNN_decision_tree_experiment(N_param):        # check for the best N and K p
                 max_N, max_K = i, j
                 max_accuracy = max(accuracy_lst)
     print("best N = " + str(max_N) + " best K = " + str(max_K) + " best accuracy for this parameters: " + str(max_accuracy))
-
-
-
-

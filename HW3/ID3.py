@@ -2,7 +2,6 @@ from math import log
 import pandas as pd
 from sklearn.model_selection import KFold
 import matplotlib.pyplot as plt
-from timeit import default_timer as timer
 
 
 class Tree:
@@ -14,63 +13,34 @@ class Tree:
         self.leftNode = None
         self.rightNode = None
 
-        self.true_childs = None
-        self.false_childs = None
-
-
-def calculate_true_or_false_childs(tree):
-    # if tree.rightNode is None or tree.leftNode is None:
-    #     if tree.rightNode is None:
-    #         return tree.leftNode.true_childs, tree.leftNode.false_childs
-    #     elif tree.leftNode is None:
-    #         return tree.rightNode.true_childs, tree.rightNode.false_childs
-
-    # else:
-    return tree.rightNode.true_childs + tree.leftNode.true_childs, tree.rightNode.false_childs + tree.leftNode.false_childs
-
 
 def ID3(example_set, feature_set, classification, m_param):
+
     tree = Tree()
-    # print(len(example_set))
 
     if len(example_set) <= 0:
         tree.classification = classification
-        tree.true_childs = 1 if classification is True else 0
-        tree.false_childs = 1 if classification is False else 0
         return tree
-
-
 
     if len(example_set) < m_param:
         tree.classification = classification
-        tree.true_childs = 1 if classification is True else 0
-        tree.false_childs = 1 if classification is False else 0
         return tree
 
     classification = MajorityClass(example_set)
 
     if isLeaf(example_set) is True:
         tree.classification = classification
-        tree.true_childs = 1 if classification is True else 0
-        tree.false_childs = 1 if classification is False else 0
         return tree
 
-    best_feature_index, best_threshold, best_feature_name = MaxIG(example_set, feature_set)        # Select the best feature
-
-    #print("best feature: ", best_feature_index, "best threshold: ", best_threshold)
-
+    best_feature_index, best_threshold, best_feature_name = MaxIG(example_set, feature_set)    # Select the best feature
 
     if all_values_equal(example_set, best_feature_index):
         tree.classification = classification
-        tree.true_childs = 1 if classification is True else 0
-        tree.false_childs = 1 if classification is False else 0
         return tree
-
-
-    #print(best_feature, best_threshold)
 
     smaller = []
     bigger_equal = []
+
     for line in example_set:
         if line[best_feature_index] < best_threshold:
             smaller.append(line)
@@ -85,8 +55,6 @@ def ID3(example_set, feature_set, classification, m_param):
 
     tree.rightNode = ID3(bigger_equal, feature_set, classification, m_param)
 
-    tree.true_childs, tree.false_childs = calculate_true_or_false_childs(tree)
-
     return tree
 
 
@@ -100,13 +68,9 @@ def MaxIG(example_set, feature_set):            # calculate the feature that has
             continue
 
         curr_feature_index = feature_set.index(feature)
-        # recent changes:
-        # new_df = data_frame[["diagnosis", feature]]
-        # arr = new_df.to_numpy()
+
         value, threshold = IG(example_set, curr_feature_index)
 
-        # value, threshold = IG(data_frame, feature)
-        # print('value: ', value, " | feature: ", feature, " | threshold: ", threshold)
         if value >= max_value:
             max_value = value
             max_value_feature_index = curr_feature_index
@@ -115,11 +79,7 @@ def MaxIG(example_set, feature_set):            # calculate the feature that has
     return max_value_feature_index, best_threshold, max_value_feature_name
 
 
-def get_i_element(line, i):
-    return line[i]
-
-
-def IG(arr, feature_index):      # calculate the max threshold for certain feature
+def IG(arr, feature_index):      # calculate best threshold for certain feature
 
     arr_len = len(arr)
 
@@ -135,16 +95,10 @@ def IG(arr, feature_index):      # calculate the max threshold for certain featu
     new_lst.sort()
 
     for i in range(arr_len - 1):
-
-
-
-
-        #arr.sort(key=get_i_element(arr[i]))
-
-        sum = new_lst[i] + new_lst[i + 1]
+        sum_ = new_lst[i] + new_lst[i + 1]
         if new_lst[i] == new_lst[i + 1]:
             continue
-        threshold = sum / 2
+        threshold = sum_ / 2
         ig_value = calculate_IG_for_threshold(arr, feature_index, threshold, arr_len)  # passing arr_len to save run time
         ig_diff = current_ig - ig_value
         if ig_diff > ig_max_value:
@@ -153,12 +107,10 @@ def IG(arr, feature_index):      # calculate the max threshold for certain featu
     return ig_max_value, ig_max_threshold
 
 
+def calculate_IG_for_threshold(arr, feature_index, threshold, arr_len):   # calculate entropy for certain threshold for certain feature
 
-
-def calculate_IG_for_threshold(arr, feature_index, threshold, arr_len):         # calculate entropy for certain threshold for certain feature
     smaller = []
     bigger_equal = []
-
 
     for i in range(arr_len):
         if arr[i][feature_index] >= threshold:
@@ -206,7 +158,7 @@ def isLeaf(example_set):
     return False
 
 
-def MajorityClass(example_set):      # True if |M| >= |B| , False if |M| < |B|
+def MajorityClass(example_set):      # True if |M| > |B| , False if |M| <= |B|
     M_counter = 0
     B_counter = 0
     for line in example_set:
@@ -214,8 +166,8 @@ def MajorityClass(example_set):      # True if |M| >= |B| , False if |M| < |B|
             M_counter += 1
         else:
             B_counter += 1
-    #print('B_counter= ', B_counter, 'M_counter: ', M_counter)
-    if M_counter >= B_counter:
+    # print('B_counter= ', B_counter, 'M_counter: ', M_counter)
+    if M_counter > B_counter:
         return True
     else:
         return False
@@ -241,7 +193,7 @@ def all_values_equal(example_set, feature_index):
     return True
 
 
-def experiment(m_param):  # experiment() , input: M parameter, output: accuracy, make sure train.csv in project dir
+def experiment(m_param):  # input: M parameter for pruning, output: accuracy (make sure train.csv in project dir)
 
     # read csv file
     file = pd.read_csv('train.csv')
@@ -259,10 +211,7 @@ def experiment(m_param):  # experiment() , input: M parameter, output: accuracy,
         train_list = test[0]  # union of k-1 groups (train group)
         test_list = test[1]  # (test group)
         train_current_data_frame = data_frame.reindex(train_list)
-        # print(train_current_data_frame)
         test_current_data_frame = data_frame.reindex(test_list)
-        # print(test_current_data_frame)
-        # print("\n\n")
 
         train_current_list = train_current_data_frame.to_numpy()
 
@@ -271,10 +220,9 @@ def experiment(m_param):  # experiment() , input: M parameter, output: accuracy,
         accuracy, loss = calculate_accuracy_and_loss(test_current_data_frame, tree)  # test on the last piece
 
         accuracy_list.append(accuracy)
-        #print('accuracy: ', accuracy)
+
     sum_ = sum(accuracy_list)
-    # for e in accuracy_list:
-    #     sum_ += e
+
     average = sum_ / len(accuracy_list)
     print(average)
     return average
@@ -284,7 +232,7 @@ def create_graph(lst):
 
     y_lst = []
     for e in lst:
-        print("calculating for M = " + str(e) + " ...")
+        # print("calculating for M = " + str(e) + " ...")
         accuracy = experiment(e)
         y_lst.append(accuracy)
 
@@ -294,7 +242,6 @@ def create_graph(lst):
 
     for i in range(len(lst)):
         f'{lst[i]:.5f}'
-        #text = "(" + str(lst[i]) + ", " + str(y_lst[i]) + ")"
         text = "(" + str(lst[i]) + ", " + f'{y_lst[i]:.5f}' + ")"
         plt.text(lst[i], y_lst[i], s=text)
 
@@ -303,17 +250,15 @@ def create_graph(lst):
 
 def calculate_accuracy_and_loss(data_frame, tree):
     test_real_diagnosis = [diagnosis for diagnosis in data_frame["diagnosis"]]
-    #print(test_real_diagnosis)
     correct_answer = 0
     wrong_answers = 0
     false_negative_counter = 0
     false_positive_counter = 0
     for i in range(len(test_real_diagnosis)):
         result = Classifier(data_frame.iloc[i:i + 1], tree)
-        #result = better_classifier(data_frame.iloc[i:i + 1], tree)
-        #print(result)
+
         real_diagnosis_bool = True if test_real_diagnosis[i] == 'M' else False
-        #print('classifier result: ', result, 'Real result: ', real_diagnosis_bool)
+
         if result == real_diagnosis_bool:
             correct_answer += 1
         else:
@@ -322,9 +267,8 @@ def calculate_accuracy_and_loss(data_frame, tree):
                 false_positive_counter += 1
 
             if result is False and real_diagnosis_bool is True:  # False Negative situation
-                #print(i)
                 false_negative_counter += 1
-    # print('wrong: ', wrong_answers)
+
     # print('false_positive_counter: ', false_positive_counter, 'false_negative_counter:', false_negative_counter)
     accuracy = correct_answer / len(test_real_diagnosis)
     loss = ((0.1 * false_positive_counter) + (1 * false_negative_counter)) / len(test_real_diagnosis)
@@ -371,15 +315,3 @@ def run_question_4_1():  # no inputs, the output is loss, make sure train.csv an
     # todo step 2 : test, then check accuracy
     accuracy, loss = calculate_accuracy_and_loss(data_frame_test, tree)
     print(loss)
-
-
-
-
-
-
-
-
-
-
-
-

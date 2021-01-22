@@ -15,7 +15,6 @@ def tree_get_features(tree, feature_list):
     tree_get_features(tree.rightNode, feature_list)
 
 
-
 def first_element(element):
     return element[0]
 
@@ -44,7 +43,7 @@ def KNN_decision_tree(N_param, K_param, M_param):
 
     for i in range(data_frame_test_len):
 
-        sample_vector = test_set[i][1:]           # create vector of all the features values
+        sample_vector = test_set[i][1:]          # given new example -> create vector of all the features values
 
         # here we check distance between the single example centroid and the Trees centroids
         distance_and_tree_list = []
@@ -70,7 +69,6 @@ def KNN_decision_tree(N_param, K_param, M_param):
     accuracy = correct_answer / data_frame_test_len
     print(accuracy)
     return accuracy
-    # return 0
 
 
 def KNN_get_centroids_and_trees(N_param, example_set, feature_set, M_param):  # Learn N trees and return N centroids
@@ -79,27 +77,24 @@ def KNN_get_centroids_and_trees(N_param, example_set, feature_set, M_param):  # 
 
     tree_and_centroid_list = []
 
+    p = 0.3 + (random.random() * 0.4)  # random number in the interval [0.3,0,7]
+    partial_example_set_len = int(table_len * p)
+
     for i in range(N_param):
         example_set_tmp = example_set
         example_set_tmp = example_set_tmp.tolist()
         partial_example_set = []
-        p = 0.3 + (random.random()*0.4)  # random number in the interval [0.3,0,7]
-        partial_example_set_len = int(table_len * p)
-        #print('partial_example_set_len: ', partial_example_set_len)
 
-        for j in range(partial_example_set_len):
+        for j in range(partial_example_set_len):     # selects subset of the example set
             choice = random.choice(example_set_tmp)
             partial_example_set.append(choice)
             example_set_tmp.remove(choice)
 
-        # partial_example_set = example_set  # experiment
-        #print('partial example_set: ', partial_example_set)
         centroid_list = calculate_centroid(partial_example_set)
-        #print(centroid_list)
 
         tree = ID3(example_set=partial_example_set, feature_set=feature_set, classification=True, m_param=M_param)
 
-        # improvement 1
+        # improvement - another centroid
         features_in_tree_nodes = []
         tree_get_features(tree, features_in_tree_nodes)
         features_index_in_tree_nodes = []
@@ -119,13 +114,13 @@ def calculate_centroid(example_set):
     for i in range(len(example_set[0])):
         if i == 0:
             continue
-        sum = 0
+
+        sum_ = 0
         for line in example_set:
-            #print(line[i])
-            sum += line[i]
-        #print('---------------------')
+            sum_ += line[i]
+
         example_set_len = len(example_set)
-        average = sum / example_set_len
+        average = sum_ / example_set_len
 
         centroid_list.append(average)
     return centroid_list
@@ -133,20 +128,21 @@ def calculate_centroid(example_set):
 
 def better_calculate_centroid(example_set, features_index_in_tree_nodes):
     better_centroid_list = []
-    # print("len:", len(example_set[0]))
+
     for i in range(len(example_set[0])):
         if i == 0:
             continue
+
         if i not in features_index_in_tree_nodes:
             better_centroid_list.append(0)
             continue
-        sum = 0
+
+        sum_ = 0
         for line in example_set:
-            # print(line[i])
-            sum += line[i]
-        # print('---------------------')
+            sum_ += line[i]
+
         example_set_len = len(example_set)
-        average = sum / example_set_len
+        average = sum_ / example_set_len
 
         better_centroid_list.append(average)
     return better_centroid_list
@@ -154,12 +150,13 @@ def better_calculate_centroid(example_set, features_index_in_tree_nodes):
 
 def calculate_distance(vector1, vector2):
     if len(vector1) != len(vector2):
-        print("not good")
+        print("The dimensions of the vectors are not equal")
         return 0
-    sum = 0
+
+    sum_ = 0
     for i in range(len(vector1)):
-        sum += (vector1[i]-vector2[i])*(vector1[i]-vector2[i])
-    return sqrt(sum)
+        sum_ += (vector1[i]-vector2[i])*(vector1[i]-vector2[i])
+    return sqrt(sum_)
 
 
 def check_single_example_on_K_trees(single_example, distances_and_trees, K_param):
@@ -176,8 +173,6 @@ def check_single_example_on_K_trees(single_example, distances_and_trees, K_param
     return total_result
 
 
-
-
 def KNN_decision_tree_experiment(N_param):        # check for the best N and K parameters
 
     max_avg = 0
@@ -188,7 +183,7 @@ def KNN_decision_tree_experiment(N_param):        # check for the best N and K p
             for m in [3, 5]:
                 accuracy_lst = []
                 sum = 0
-                print("calculate for N = " + str(i) + " K = " + str(j) + " M = " + str(m))
+                print("calculating for N = " + str(i) + " K = " + str(j) + " M = " + str(m) + " ...")
                 for k in range(5):
                     accuracy_lst.append(KNN_decision_tree(i, j, m))
                 for e in accuracy_lst:
@@ -199,3 +194,36 @@ def KNN_decision_tree_experiment(N_param):        # check for the best N and K p
                     max_N, max_K, max_M = i, j, m
                     max_accuracy = max(accuracy_lst)
     print("best N = " + str(max_N) + " best K = " + str(max_K) + " best M = " + str(max_M) + " best accuracy for this parameters: " + str(max_accuracy))
+
+
+def KNN_decision_tree_random_experiment():        # check for the best N and K parameters
+    max_avg = 0
+    max_accuracy = 0
+    max_N, max_K, max_M= 0, 0, 0
+    N_K_list = []
+    for i in range(1, 17):
+        for j in range(1, i + 1):
+            N_K_list.append((i, j))
+    for i in range(5):
+        choice = random.choice(N_K_list)
+        N_K_list.remove(choice)
+        for m in [5]:  # at first I chose list of different m parameters , but m = 5 gave the highest accuracy
+            accuracy_lst = []
+            sum_ = 0
+            print("calculating for N = " + str(choice[0]) + " K = " + str(choice[1]) + " M = " + str(m) + " ...")
+            for k in range(4):
+                accuracy_lst.append(KNN_decision_tree(choice[0], choice[1], m))
+
+            sum_ = sum(accuracy_lst)
+
+            avg = sum_ / 4
+            if avg > max_avg:
+                max_avg = avg
+                max_N, max_K, max_M = choice[0], choice[1], m
+                max_accuracy = max(accuracy_lst)
+
+    print("best N = " + str(max_N) + " best K = " + str(max_K) + " best M = " + str(max_M)
+          + " best accuracy for this parameters: " + str(max_accuracy) + " average for this parameters: " + str(max_avg) + "\n")
+
+    print("\nNow calculating for these parameters...")
+    KNN_decision_tree(max_N, max_K, max_M)
